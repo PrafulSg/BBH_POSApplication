@@ -1,0 +1,73 @@
+package com.BharatBagHouse.configuration;
+
+import jakarta.servlet.http.HttpServletRequest;
+import org.hibernate.boot.internal.Abstract;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+
+import java.util.Arrays;
+import java.util.Collections;
+
+@Configuration
+public class SecurityConfig {
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+
+
+        return http.sessionManagement(management ->
+                        management.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(Authorize ->
+                        Authorize.requestMatchers("/api/**").authenticated()
+                                .requestMatchers("/api/super-admin/**")
+                                .hasRole("ADMIN")
+                                .anyRequest().permitAll()
+                ).addFilterBefore(new JwtValidator(),
+                        BasicAuthenticationFilter.class
+                ).csrf(AbstractHttpConfigurer::disable)
+                .cors(
+                        cors -> cors.configurationSource(corsConfigurationSource())
+                ).build();
+    }
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        //Bcrypt extra layer of security as it string not exact password
+        return new BCryptPasswordEncoder();
+    }
+
+
+
+    private CorsConfigurationSource corsConfigurationSource() {
+        return new CorsConfigurationSource() {
+            @Override
+            public CorsConfiguration getCorsConfiguration(HttpServletRequest request) {
+                CorsConfiguration cfg = new CorsConfiguration();
+                cfg.setAllowedOrigins(
+                        Arrays.asList( // deploy v need to give vercel domain also here
+                                "http://localhost:3306"
+                        )
+                );
+                cfg.setAllowedMethods(Collections.singletonList("*"));
+                cfg.setAllowCredentials(true);
+                cfg.setAllowedHeaders(Collections.singletonList("*"));
+                cfg.setExposedHeaders(Arrays.asList("Authorization"));
+                cfg.setMaxAge(3600L);
+
+                return cfg;
+            }
+        };
+    }
+
+
+}
+
