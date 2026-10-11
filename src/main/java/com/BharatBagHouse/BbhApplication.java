@@ -8,7 +8,7 @@ public class BbhApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(BbhApplication.class, args);
-		 System.out.println(10);
+
 	}
 
 }
